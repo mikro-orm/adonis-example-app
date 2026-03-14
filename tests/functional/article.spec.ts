@@ -28,6 +28,7 @@ test.group('Article', () => {
       text: 'Article content',
     })
 
-    response.assertStatus(500)
+    response.assertStatus(401)
+    response.assertBodyContains({ error: 'Please provide your token via Authorization header' })
   })
 })
