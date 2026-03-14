@@ -11,6 +11,12 @@ jobs:
     strategy:
       matrix:
         node-version: [24]
+    env:
+      NODE_ENV: test
+      APP_KEY: test-key-for-ci-only
+      HOST: localhost
+      PORT: 3333
+      LOG_LEVEL: error
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
