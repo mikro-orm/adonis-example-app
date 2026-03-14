@@ -1,22 +1,14 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import { wrap, type EntityData } from '@mikro-orm/core'
+import { wrap } from '@mikro-orm/core'
 import { EntityManager } from '@mikro-orm/sqlite'
-import { type IArticle } from '#entities/article'
 import { CommentSchema } from '#entities/comment'
-import { type User } from '#entities/user'
 import { AuthError } from '#repositories/user_repository'
 import { ArticleRepository } from '#repositories/article_repository'
+import { getUserFromCtx } from '#utils/auth'
+import { type IArticle } from '#entities/article'
 
-function getUserFromCtx(ctx: HttpContext): User {
-  if (!ctx.user) {
-    throw new AuthError('Please provide your token via Authorization header')
-  }
-
-  return ctx.user as User
-}
-
-function verifyArticlePermissions(user: User, article: IArticle) {
+function verifyArticlePermissions(user: { id: number }, article: IArticle) {
   if (article.author.id !== user.id) {
     throw new AuthError('You are not the author of this article!')
   }
@@ -64,7 +56,16 @@ export default class ArticlesController {
     const user = getUserFromCtx(ctx)
     const article = await this.articleRepo.findOneOrFail(+ctx.params.id)
     verifyArticlePermissions(user, article)
-    wrap(article).assign(ctx.request.body() as EntityData<IArticle>)
+    const body = ctx.request.body()
+    const data: Record<string, unknown> = {}
+
+    for (const key of ['title', 'description', 'text'] as const) {
+      if (body[key] !== undefined) {
+        data[key] = body[key]
+      }
+    }
+
+    wrap(article).assign(data)
     await this.em.flush()
 
     return article
@@ -72,12 +73,7 @@ export default class ArticlesController {
 
   async destroy(ctx: HttpContext) {
     const user = getUserFromCtx(ctx)
-    const article = await this.articleRepo.findOne(+ctx.params.id)
-
-    if (!article) {
-      return { notFound: true }
-    }
-
+    const article = await this.articleRepo.findOneOrFail(+ctx.params.id)
     verifyArticlePermissions(user, article)
     await this.em.remove(article).flush()
 
@@ -89,8 +85,6 @@ export default class ArticlesController {
     const article = await this.articleRepo.findOneOrFail({ slug: ctx.params.slug })
     const { text } = ctx.request.body()
     const comment = this.em.create(CommentSchema, { author, article, text })
-
-    article.comments.add(comment)
     await this.em.flush()
 
     return comment

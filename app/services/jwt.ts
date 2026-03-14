@@ -1,6 +1,7 @@
-import { createHmac } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 
 const SECRET = process.env.JWT_SECRET ?? '12345678'
+const TOKEN_MAX_AGE = 60 * 60 * 24 // 24 hours in seconds
 
 interface JwtPayload {
   id: number
@@ -26,9 +27,16 @@ export function verifyJwt(token: string): JwtPayload {
     .update(`${header}.${body}`)
     .digest('base64url')
 
-  if (signature !== expected) {
+  if (!timingSafeEqual(Buffer.from(signature!), Buffer.from(expected))) {
     throw new Error('Invalid token signature')
   }
 
-  return JSON.parse(Buffer.from(body!, 'base64url').toString())
+  const payload: JwtPayload = JSON.parse(Buffer.from(body!, 'base64url').toString())
+  const age = Math.floor(Date.now() / 1000) - payload.iat
+
+  if (age > TOKEN_MAX_AGE) {
+    throw new Error('Token expired')
+  }
+
+  return payload
 }

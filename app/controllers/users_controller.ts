@@ -1,18 +1,10 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import { wrap, type EntityData } from '@mikro-orm/core'
+import { wrap } from '@mikro-orm/core'
 import { EntityManager } from '@mikro-orm/sqlite'
-import { type User } from '#entities/user'
 import { signJwt } from '#services/jwt'
 import { AuthError, UserRepository } from '#repositories/user_repository'
-
-function getUserFromCtx(ctx: HttpContext): User {
-  if (!ctx.user) {
-    throw new AuthError('Please provide your token via Authorization header')
-  }
-
-  return ctx.user as User
-}
+import { getUserFromCtx } from '#utils/auth'
 
 @inject()
 export default class UsersController {
@@ -22,15 +14,15 @@ export default class UsersController {
   ) {}
 
   async signUp({ request, response }: HttpContext) {
-    const body = request.body()
+    const { fullName, email, password, bio } = request.body()
 
-    if (await this.userRepo.exists(body.email)) {
+    if (await this.userRepo.exists(email)) {
       return response.badRequest({
         error: 'This email is already registered, maybe you want to sign in?',
       })
     }
 
-    const user = this.userRepo.create(body as any)
+    const user = this.userRepo.create({ fullName, email, password, bio })
     await this.em.flush()
 
     user.token = signJwt({ id: user.id })
@@ -60,7 +52,16 @@ export default class UsersController {
 
   async updateProfile(ctx: HttpContext) {
     const user = getUserFromCtx(ctx)
-    wrap(user).assign(ctx.request.body() as EntityData<User>)
+    const body = ctx.request.body()
+    const data: Record<string, unknown> = {}
+
+    for (const key of ['fullName', 'bio', 'social'] as const) {
+      if (body[key] !== undefined) {
+        data[key] = body[key]
+      }
+    }
+
+    wrap(user).assign(data)
     await this.em.flush()
     return user
   }

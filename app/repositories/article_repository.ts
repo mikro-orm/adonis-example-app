@@ -15,7 +15,7 @@ export class ArticleRepository extends EntityRepository<IArticle> {
       .select(sql`group_concat(distinct t.name)`)
       .join('aa.tags', 't')
       .where({ 'aa.id': sql.ref('a.id') })
-      .groupBy('aa.author')
+      .groupBy('aa.id')
       .as('tags')
 
     return this.createQueryBuilder('a')

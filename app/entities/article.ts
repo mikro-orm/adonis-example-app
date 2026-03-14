@@ -18,7 +18,7 @@ export const ArticleSchema = defineEntity({
   properties: {
     slug: p.string().unique().onCreate(article => convertToSlug(article.title)),
     title: p.string().index(),
-    description: p.string().length(1000).onCreate(article => article.text.substring(0, 999) + '…'),
+    description: p.string().length(1000).onCreate(article => article.text.length > 999 ? article.text.substring(0, 999) + '…' : article.text),
     text: p.text().lazy(),
     author: () => p.manyToOne(UserSchema).ref(),
     tags: () => p.manyToMany(TagSchema),

@@ -37,4 +37,19 @@ test.group('User', () => {
     profileResponse.assertStatus(200)
     profileResponse.assertBodyContains({ fullName: 'Test User' })
   })
+
+  test('update profile', async ({ client, assert }) => {
+    const signIn = await client.post('/user/sign-in').json({
+      email: 'foo@bar.com',
+      password: 'password123',
+    })
+    const token = signIn.body().token
+
+    const response = await client.patch('/user/profile').header('authorization', `Bearer ${token}`).json({
+      bio: 'Updated bio text',
+    })
+
+    response.assertStatus(200)
+    assert.equal(response.body().bio, 'Updated bio text')
+  })
 })

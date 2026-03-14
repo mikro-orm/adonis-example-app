@@ -31,4 +31,82 @@ test.group('Article', () => {
     response.assertStatus(401)
     response.assertBodyContains({ error: 'Please provide your token via Authorization header' })
   })
+
+  test('create article with auth', async ({ client, assert }) => {
+    const signIn = await client.post('/user/sign-in').json({
+      email: 'foo@bar.com',
+      password: 'password123',
+    })
+    const token = signIn.body().token
+
+    const response = await client.post('/article').header('authorization', `Bearer ${token}`).json({
+      title: 'Brand New Article',
+      text: 'Some interesting content here',
+    })
+
+    response.assertStatus(200)
+    assert.equal(response.body().title, 'Brand New Article')
+    assert.equal(response.body().slug, 'brand-new-article')
+  })
+
+  test('update article', async ({ client, assert }) => {
+    const signIn = await client.post('/user/sign-in').json({
+      email: 'foo@bar.com',
+      password: 'password123',
+    })
+    const token = signIn.body().token
+
+    // get the article ID via the detail endpoint
+    const list = await client.get('/article')
+    const slug = list.body().items[0].slug
+    const detail = await client.get(`/article/${slug}`)
+    const articleId = detail.body().id
+
+    const response = await client.patch(`/article/${articleId}`).header('authorization', `Bearer ${token}`).json({
+      title: 'Updated Title',
+    })
+
+    response.assertStatus(200)
+    assert.equal(response.body().title, 'Updated Title')
+  })
+
+  test('delete article', async ({ client, assert }) => {
+    const signIn = await client.post('/user/sign-in').json({
+      email: 'foo@bar.com',
+      password: 'password123',
+    })
+    const token = signIn.body().token
+
+    const list = await client.get('/article')
+    const totalBefore = list.body().total
+    const slug = list.body().items[totalBefore - 1].slug
+    const detail = await client.get(`/article/${slug}`)
+    const articleId = detail.body().id
+
+    const response = await client.delete(`/article/${articleId}`).header('authorization', `Bearer ${token}`)
+
+    response.assertStatus(200)
+    response.assertBodyContains({ success: true })
+
+    const listAfter = await client.get('/article')
+    assert.equal(listAfter.body().total, totalBefore - 1)
+  })
+
+  test('add comment to article', async ({ client, assert }) => {
+    const signIn = await client.post('/user/sign-in').json({
+      email: 'foo@bar.com',
+      password: 'password123',
+    })
+    const token = signIn.body().token
+
+    const list = await client.get('/article')
+    const slug = list.body().items[0].slug
+
+    const response = await client.post(`/article/${slug}/comment`).header('authorization', `Bearer ${token}`).json({
+      text: 'Great article!',
+    })
+
+    response.assertStatus(200)
+    assert.equal(response.body().text, 'Great article!')
+  })
 })

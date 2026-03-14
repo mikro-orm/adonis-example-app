@@ -23,6 +23,7 @@
     "#repositories/*": "./app/repositories/*.js",
     "#services/*": "./app/services/*.js",
     "#subscribers/*": "./app/subscribers/*.js",
+    "#utils/*": "./app/utils/*.js",
     "#providers/*": "./providers/*.js",
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
