@@ -1,6 +1,6 @@
 import { MikroORM, EntityManager } from '@mikro-orm/sqlite'
 import type { ApplicationService } from '@adonisjs/core/types'
-import config from '../src/mikro-orm.config.js'
+import config from '../mikro-orm.config.js'
 import { UserRepository } from '#repositories/user_repository'
 import { ArticleRepository } from '#repositories/article_repository'
 import { UserSchema } from '#entities/user'
