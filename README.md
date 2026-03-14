@@ -21,7 +21,7 @@ Based on the [AdonisJS slim starter kit](https://github.com/adonisjs/slim-starte
 
 ## Prerequisites
 
-- Node.js >= 20
+- Node.js >= 24
 - npm
 
 ## Setup
