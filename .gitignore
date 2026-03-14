@@ -1,0 +1,22 @@
+# Dependencies and AdonisJS build
+node_modules
+build
+tmp
+.adonisjs
+
+# Secrets
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Database
+sqlite.db
+
+# Editors specific
+.fleet
+.idea
+.vscode
+
+# Platform specific
+.DS_Store
