@@ -1,4 +1,7 @@
 import { test } from '@japa/runner'
+import app from '@adonisjs/core/services/app'
+import { MikroORM } from '@mikro-orm/sqlite'
+import { User } from '#entities/user'
 
 test.group('User', () => {
   test('sign in with valid credentials', async ({ client }) => {
@@ -31,21 +34,20 @@ test.group('User', () => {
     signUpResponse.assertStatus(200)
     signUpResponse.assertBodyContains({ fullName: 'Test User' })
 
-    const token = signUpResponse.body().token
-    const profileResponse = await client.get('/user/profile').header('authorization', `Bearer ${token}`)
+    // use loginAs with the newly created user
+    const orm = await app.container.make(MikroORM)
+    const user = await orm.em.fork().findOneOrFail(User, { email: 'test@example.com' })
+    const profileResponse = await client.get('/user/profile').loginAs(user)
 
     profileResponse.assertStatus(200)
     profileResponse.assertBodyContains({ fullName: 'Test User' })
   })
 
   test('update profile', async ({ client, assert }) => {
-    const signIn = await client.post('/user/sign-in').json({
-      email: 'foo@bar.com',
-      password: 'password123',
-    })
-    const token = signIn.body().token
+    const orm = await app.container.make(MikroORM)
+    const user = await orm.em.fork().findOneOrFail(User, { email: 'foo@bar.com' })
 
-    const response = await client.patch('/user/profile').header('authorization', `Bearer ${token}`).json({
+    const response = await client.patch('/user/profile').loginAs(user).json({
       bio: 'Updated bio text',
     })
 

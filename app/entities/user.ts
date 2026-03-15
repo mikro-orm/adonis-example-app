@@ -39,7 +39,6 @@ export const UserSchema = defineEntity({
     password: p.string().hidden().lazy(),
     bio: p.text().default(''),
     articles: () => p.oneToMany(ArticleSchema).mappedBy('author'),
-    token: p.string().persist(false).nullable(),
     social: () => p.embedded(SocialSchema).object().nullable(),
   },
 })

@@ -16,14 +16,13 @@
     "typecheck": "tsc --noEmit"
   },
   "imports": {
+    "#auth/*": "./app/auth/*.js",
     "#controllers/*": "./app/controllers/*.js",
     "#entities/*": "./app/entities/*.js",
     "#exceptions/*": "./app/exceptions/*.js",
     "#middleware/*": "./app/middleware/*.js",
     "#repositories/*": "./app/repositories/*.js",
-    "#services/*": "./app/services/*.js",
     "#subscribers/*": "./app/subscribers/*.js",
-    "#utils/*": "./app/utils/*.js",
     "#providers/*": "./providers/*.js",
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
@@ -31,7 +30,9 @@
     "#tests/*": "./tests/*.js"
   },
   "dependencies": {
+    "@adonisjs/auth": "^10.0.0",
     "@adonisjs/core": "^7.0.1",
+    "@adonisjs/session": "^8.0.0",
     "@mikro-orm/core": "^7.0.1",
     "@mikro-orm/migrations": "^7.0.1",
     "@mikro-orm/sqlite": "^7.0.1",
