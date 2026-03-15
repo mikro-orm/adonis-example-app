@@ -2,9 +2,7 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import { wrap } from '@mikro-orm/core'
 import { EntityManager } from '@mikro-orm/sqlite'
-import { signJwt } from '#services/jwt'
 import { AuthError, UserRepository } from '#repositories/user_repository'
-import { getUserFromCtx } from '#utils/auth'
 
 @inject()
 export default class UsersController {
@@ -13,7 +11,7 @@ export default class UsersController {
     protected userRepo: UserRepository,
   ) {}
 
-  async signUp({ request, response }: HttpContext) {
+  async signUp({ request, response, auth }: HttpContext) {
     const { fullName, email, password, bio } = request.body()
 
     if (await this.userRepo.exists(email)) {
@@ -24,18 +22,17 @@ export default class UsersController {
 
     const user = this.userRepo.create({ fullName, email, password, bio })
     await this.em.flush()
-
-    user.token = signJwt({ id: user.id })
+    await auth.use('web').login(user)
 
     return user
   }
 
-  async signIn({ request, response }: HttpContext) {
+  async signIn({ request, response, auth }: HttpContext) {
     const { email, password } = request.body()
 
     try {
       const user = await this.userRepo.login(email, password)
-      user.token = signJwt({ id: user.id })
+      await auth.use('web').login(user)
       return user
     } catch (error) {
       if (error instanceof AuthError) {
@@ -46,13 +43,13 @@ export default class UsersController {
     }
   }
 
-  async profile(ctx: HttpContext) {
-    return getUserFromCtx(ctx)
+  async profile({ auth }: HttpContext) {
+    return auth.getUserOrFail()
   }
 
-  async updateProfile(ctx: HttpContext) {
-    const user = getUserFromCtx(ctx)
-    const body = ctx.request.body()
+  async updateProfile({ auth, request }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const body = request.body()
     const data: Record<string, unknown> = {}
 
     for (const key of ['fullName', 'bio', 'social'] as const) {

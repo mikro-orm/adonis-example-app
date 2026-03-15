@@ -1,31 +1,14 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { UserRepository } from '#repositories/user_repository'
-import { verifyJwt } from '#services/jwt'
+import type { Authenticators } from '@adonisjs/auth/types'
 
 /**
- * Attempts to authenticate the user from the Authorization header.
- * Does not reject unauthenticated requests — just sets `ctx.user` if valid.
+ * Protects routes from unauthenticated users. Throws E_UNAUTHORIZED_ACCESS
+ * when the user is not logged in.
  */
-@inject()
 export default class AuthMiddleware {
-  constructor(protected userRepo: UserRepository) {}
-
-  async handle(ctx: HttpContext, next: NextFn) {
-    const header = ctx.request.header('authorization')
-
-    if (header?.startsWith('Bearer ')) {
-      const token = header.slice(7)
-
-      try {
-        const payload = verifyJwt(token)
-        ctx.user = await this.userRepo.findOneOrFail(payload.id)
-      } catch {
-        // ignore invalid tokens, we validate ctx.user where needed
-      }
-    }
-
+  async handle(ctx: HttpContext, next: NextFn, options: { guards?: (keyof Authenticators)[] } = {}) {
+    await ctx.auth.authenticateUsing(options.guards || [ctx.auth.defaultGuard])
     return next()
   }
 }

@@ -1,4 +1,12 @@
 import { test } from '@japa/runner'
+import app from '@adonisjs/core/services/app'
+import { MikroORM } from '@mikro-orm/sqlite'
+import { User } from '#entities/user'
+
+async function getTestUser() {
+  const orm = await app.container.make(MikroORM)
+  return orm.em.fork().findOneOrFail(User, { email: 'foo@bar.com' })
+}
 
 test.group('Article', () => {
   test('list all articles', async ({ client, assert }) => {
@@ -29,17 +37,13 @@ test.group('Article', () => {
     })
 
     response.assertStatus(401)
-    response.assertBodyContains({ error: 'Please provide your token via Authorization header' })
+    response.assertBodyContains({ error: 'Unauthorized' })
   })
 
   test('create article with auth', async ({ client, assert }) => {
-    const signIn = await client.post('/user/sign-in').json({
-      email: 'foo@bar.com',
-      password: 'password123',
-    })
-    const token = signIn.body().token
+    const user = await getTestUser()
 
-    const response = await client.post('/article').header('authorization', `Bearer ${token}`).json({
+    const response = await client.post('/article').loginAs(user).json({
       title: 'Brand New Article',
       text: 'Some interesting content here',
     })
@@ -50,11 +54,7 @@ test.group('Article', () => {
   })
 
   test('update article', async ({ client, assert }) => {
-    const signIn = await client.post('/user/sign-in').json({
-      email: 'foo@bar.com',
-      password: 'password123',
-    })
-    const token = signIn.body().token
+    const user = await getTestUser()
 
     // get the article ID via the detail endpoint
     const list = await client.get('/article')
@@ -62,7 +62,7 @@ test.group('Article', () => {
     const detail = await client.get(`/article/${slug}`)
     const articleId = detail.body().id
 
-    const response = await client.patch(`/article/${articleId}`).header('authorization', `Bearer ${token}`).json({
+    const response = await client.patch(`/article/${articleId}`).loginAs(user).json({
       title: 'Updated Title',
     })
 
@@ -71,11 +71,7 @@ test.group('Article', () => {
   })
 
   test('delete article', async ({ client, assert }) => {
-    const signIn = await client.post('/user/sign-in').json({
-      email: 'foo@bar.com',
-      password: 'password123',
-    })
-    const token = signIn.body().token
+    const user = await getTestUser()
 
     const list = await client.get('/article')
     const totalBefore = list.body().total
@@ -83,7 +79,7 @@ test.group('Article', () => {
     const detail = await client.get(`/article/${slug}`)
     const articleId = detail.body().id
 
-    const response = await client.delete(`/article/${articleId}`).header('authorization', `Bearer ${token}`)
+    const response = await client.delete(`/article/${articleId}`).loginAs(user)
 
     response.assertStatus(200)
     response.assertBodyContains({ success: true })
@@ -93,16 +89,12 @@ test.group('Article', () => {
   })
 
   test('add comment to article', async ({ client, assert }) => {
-    const signIn = await client.post('/user/sign-in').json({
-      email: 'foo@bar.com',
-      password: 'password123',
-    })
-    const token = signIn.body().token
+    const user = await getTestUser()
 
     const list = await client.get('/article')
     const slug = list.body().items[0].slug
 
-    const response = await client.post(`/article/${slug}/comment`).header('authorization', `Bearer ${token}`).json({
+    const response = await client.post(`/article/${slug}/comment`).loginAs(user).json({
       text: 'Great article!',
     })
 

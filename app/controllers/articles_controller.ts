@@ -5,7 +5,6 @@ import { EntityManager } from '@mikro-orm/sqlite'
 import { CommentSchema } from '#entities/comment'
 import { AuthError } from '#repositories/user_repository'
 import { ArticleRepository } from '#repositories/article_repository'
-import { getUserFromCtx } from '#utils/auth'
 import { type IArticle } from '#entities/article'
 
 function verifyArticlePermissions(user: { id: number }, article: IArticle) {
@@ -38,9 +37,9 @@ export default class ArticlesController {
     })
   }
 
-  async store(ctx: HttpContext) {
-    const author = getUserFromCtx(ctx)
-    const { title, description, text } = ctx.request.body()
+  async store({ auth, request }: HttpContext) {
+    const author = auth.getUserOrFail()
+    const { title, description, text } = request.body()
 
     const article = this.articleRepo.create({
       title, description, text,
@@ -52,11 +51,11 @@ export default class ArticlesController {
     return article
   }
 
-  async update(ctx: HttpContext) {
-    const user = getUserFromCtx(ctx)
-    const article = await this.articleRepo.findOneOrFail(+ctx.params.id)
+  async update({ auth, params, request }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const article = await this.articleRepo.findOneOrFail(+params.id)
     verifyArticlePermissions(user, article)
-    const body = ctx.request.body()
+    const body = request.body()
     const data: Record<string, unknown> = {}
 
     for (const key of ['title', 'description', 'text'] as const) {
@@ -71,19 +70,19 @@ export default class ArticlesController {
     return article
   }
 
-  async destroy(ctx: HttpContext) {
-    const user = getUserFromCtx(ctx)
-    const article = await this.articleRepo.findOneOrFail(+ctx.params.id)
+  async destroy({ auth, params }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const article = await this.articleRepo.findOneOrFail(+params.id)
     verifyArticlePermissions(user, article)
     await this.em.remove(article).flush()
 
     return { success: true }
   }
 
-  async addComment(ctx: HttpContext) {
-    const author = getUserFromCtx(ctx)
-    const article = await this.articleRepo.findOneOrFail({ slug: ctx.params.slug })
-    const { text } = ctx.request.body()
+  async addComment({ auth, params, request }: HttpContext) {
+    const author = auth.getUserOrFail()
+    const article = await this.articleRepo.findOneOrFail({ slug: params.slug })
+    const { text } = request.body()
     const comment = this.em.create(CommentSchema, { author, article, text })
     await this.em.flush()
 
