@@ -36,7 +36,7 @@
     "@mikro-orm/core": "^7.0.6",
     "@mikro-orm/migrations": "^7.0.6",
     "@mikro-orm/sqlite": "^7.0.6",
-    "argon2": "^0.44.0",
+    "argon2": "^0.45.0",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
